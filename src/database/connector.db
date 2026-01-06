@@ -1,0 +1,164 @@
+CREATE TABLE "Cars"(
+    "id" SERIAL NOT NULL PRIMARY KEY,
+    "car_name" TEXT NOT NULL,
+    "price" DECIMAL(8, 2) NOT NULL,
+    "colors" TEXT NOT NULL,
+    "created_at" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE "Customers"(
+    "id" SERIAL NOT NULL PRIMARY KEY,
+    "customer_name" TEXT NOT NULL,
+    "phone_number" TEXT NOT NULL,
+    "address" TEXT NOT NULL,
+    "passport_seriya" VARCHAR(2) NOT NULL,
+    "passport_number" INTEGER NOT NULL,
+    "created_at" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+CREATE TABLE "Orders"(
+    "id" SERIAL NOT NULL PRIMARY KEY,
+    "car_id" INTEGER NOT NULL REFERENCES "Cars"("id"),
+    "customer_id" INTEGER NOT NULL REFERENCES "Customers"("id"),
+    "start_date" DATE NOT NULL,
+    "end_date" DATE NOT NULL,
+    "month" INTEGER NOT NULL,
+    "created_at" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+CREATE TABLE "Payments"(
+    "id" SERIAL NOT NULL PRIMARY KEY,
+    "order_id" INTEGER NOT NULL REFERENCES "Orders"("id"),
+    "patments" DECIMAL(8, 2) NOT NULL,
+    "payment_date" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    "status" BOOLEAN DEFAULT FALSE,
+    "created_at" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+); 
+
+
+ALTER TABLE "Cars" DROP COLUMN "colors";
+ALTER TABLE "Cars" ADD COLUMN "year" INTEGER NOT NULL;
+UPDATE "Cars" SET "year" = 2020 WHERE "year" IS NULL;
+
+--GM=# ALTER TABLE "Cars" ADD COLUMN "year" INTEGER NOT NULL;
+--ERROR:  column "year" of relation "Cars" contains null values
+-- GM=# UPDATE "Cars" SET "year" = 2020 WHERE "year" IS NULL;
+-- ERROR:  column "year" does not exist
+-- LINE 1: UPDATE "Cars" SET "year" = 2020 WHERE "year" IS NULL;
+
+ALTER TABLE "Cars" ADD COLUMN "year" INTEGER NOT NULL DEFAULT 2020;
+
+INSERT INTO "Cars" ("car_name", "price", "year") VALUES ('Ford Mustang', 30000.00, 2019) RETURNING *;
+
+ALTER TABLE "Orders" DROP COLUMN "start_date";
+ALTER TABLE "Orders" ADD COLUMN "end_date" VARCHAR(255) NOT NULL DEFAULT '2024-12-31';
+
+ALTER TABLE "Payments" DROP COLUMN "patments";
+ALTER TABLE "Payments" ADD COLUMN "payment_amount" DECIMAL(8, 2) NOT NULL DEFAULT 0.00;
+
+ALTER TABLE "Payments" DROP COLUMN "updated_at";
+
+SELECT
+  c.customer_name,
+  c.phone_number,
+  car.car_name,
+  o.month,
+  o.end_date,
+  o.total_amount,
+  o.paid_amount,
+  (o.total_amount - o.paid_amount) AS debt
+FROM "Orders" o
+JOIN "Customers" c ON c.id = o.customer_id
+JOIN "Cars" car ON car.id = o.car_i d
+WHERE o.end_date < CURDATE()
+  AND o.total_amount > o.paid_amount;
+
+
+SELECT 
+  "Customers".id AS customer_id,
+  "Payments".payment_amount,
+  "Orders".id AS order_id,
+  "Orders".month AS order_month,
+  "Customers".customer_name AS customer_name,
+  "Cars".car_name AS car_model
+FROM "Customers"
+JOIN "Orders" ON "Customers".id = "Orders".customer_id
+JOIN "Payments" ON "Orders".id = "Payments".order_id
+JOIN "Cars" ON "Orders".car_id = "Cars".id;
+
+
+SELECT * FROM "Payments" INNER JOIN "Orders" ON "Payments".order_id = "Orders".id GROUP BY "Orders".id HAVING SUM("Payments".payment_amount) < "Orders".total_amount;
+
+-- GM=# SELECT * FROM "Payments" INNER JOIN "Orders" ON "Payments".order_id = "Orders".id GROUP BY "Orders".id HAVING SUM("Payments".payment_amount) < "Orders".total_amount;
+-- ERROR:  column Orders.total_amount does not exist
+-- LINE 1: ...rders".id HAVING SUM("Payments".payment_amount) < "Orders".t...
+
+SELECT 
+  o.id AS order_id,
+  c.customer_name,
+  ca.car_name,
+  o.month,
+  o.end_date,
+  o.total_amount,
+  SUM(p.payment_amount) AS total_paid,
+  (o.total_amount - SUM(p.payment_amount)) AS outstanding_debt
+FROM "Orders" o
+JOIN "Customers" c ON o.customer_id = c.id
+JOIN "Cars" ca ON o.car_id = ca.id
+LEFT JOIN "Payments" p ON o.id = p.order_id
+GROUP BY o.id, c.customer_name, ca.car_name, o.month, o.end_date, o.total_amount
+HAVING (o.total_amount - SUM(p.payment_amount)) > 0;
+
+ERROR:  column o.total_amount does not exist
+LINE 7:   o.total_amount,
+
+
+ALTER TABLE "Orders" ADD COLUMN "total_amount" DECIMAL(10, 2) NOT NULL DEFAULT 0.00;
+ALTER TABLE "Orders" ADD COLUMN "paid_amount" DECIMAL(10, 2) NOT NULL DEFAULT 0.00;
+UPDATE "Orders" SET "total_amount" = (SELECT c.price * o.month FROM "Cars" c WHERE c.id = "Orders".car_id);
+UPDATE "Orders" SET "paid_amount" = (SELECT COALESCE(SUM(p.payment_amount), 0) FROM "Payments" p WHERE p.order_id = "Orders".id);
+ALTER TABLE "Orders" ALTER COLUMN "total_amount" DROP DEFAULT;
+ALTER TABLE "Orders" ALTER COLUMN "paid_amount" DROP DEFAULT;
+
+
+GM=# ALTER TABLE "Orders" ADD COLUMN "total_amount" DECIMAL(10, 2) NOT NULL DEFAULT 0.00;
+ALTER TABLE
+GM=# ALTER TABLE "Orders" ADD COLUMN "paid_amount" DECIMAL(10, 2) NOT NULL DEFAULT 0.00;
+ALTER TABLE
+GM=# UPDATE "Orders" SET "total_amount" = (SELECT c.price * o.month FROM "Cars" c WHERE c.id = "Orders".car_id);
+ERROR:  missing FROM-clause entry for table "o"
+LINE 1: ...E "Orders" SET "total_amount" = (SELECT c.price * o.month FR...
+                                                             ^
+GM=# UPDATE "Orders" SET "paid_amount" = (SELECT COALESCE(SUM(p.payment_amount), 0) FROM "Payments" p WHERE p.order_id = "Orders".id);
+UPDATE 22
+GM=# ALTER TABLE "Orders" ALTER COLUMN "total_amount" DROP DEFAULT;
+ALTER TABLE
+GM=# ALTER TABLE "Orders" ALTER COLUMN "paid_amount" DROP DEFAULT;
+ALTER TABLE
+GM=#
+
+
+UPDATE "Orders" SET "total_amount" = (SELECT c.price * "Orders".month FROM "Cars" c WHERE c.id = "Orders".car_id);
+
+GM=# UPDATE "Orders" SET "total_amount" = (SELECT c.price * "Orders".month FROM "Cars" c WHERE c.id = "Orders".car_id);
+UPDATE 22
+
+
+SELECT 
+  o.id AS order_id,
+  c.customer_name,
+  ca.car_name,
+  o.month,
+  o.end_date,
+  o.total_amount,
+  SUM(p.payment_amount) AS total_paid,
+  (o.total_amount - SUM(p.payment_amount)) AS outstanding_debt
+FROM "Orders" o
+JOIN "Customers" c ON o.customer_id = c.id
+JOIN "Cars" ca ON o.car_id = ca.id
+LEFT JOIN "Payments" p ON o.id = p.order_id
+GROUP BY o.id, c.customer_name, ca.car_name, o.month, o.end_date, o.total_amount
+HAVING (o.total_amount - SUM(p.payment_amount)) > 0;
+
