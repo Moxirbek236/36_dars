@@ -3,7 +3,7 @@ class OrdersController {
   constructor() {}
 
   async getAllorders(req, res) {
-    const orders = await (await orderService.getAllorders()).rows;
+    const orders = await (await orderService.getAllOrders()).rows;
     res.status(200).json({
       status: 200,
       message: "Query OK",

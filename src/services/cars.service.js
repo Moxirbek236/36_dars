@@ -19,27 +19,22 @@ class CarService {
   }
 
   async deleteCar(id) {
-    try {
-      let status, message;
-      if (!id || isNaN(id) || id <= 0) {
-        status = 400;
-        message = "Invalid ID";
-      } else if (
-        !(await pool.query('SELECT * FROM "Cars" WHERE id=$1', [id])).rowCount
-      ) {
-        status = 404;
-        message = "Car not found";
-      } else {
-        status = 200;
-        message = `Car deleted successfully with ID: ${id}`;
-      }
-      console.log(status);
-
-      let data = await pool.query('DELETE FROM "Cars" WHERE id=$1', [id]);
-      return { status, message };
-    } catch (error) {
-      return { status: 400, message: "Internal Server Error" };
+    let status, message;
+    if (!id || isNaN(id) || id <= 0) {
+      status = 400;
+      message = "Invalid ID";
+    } else if (
+      !(await pool.query('SELECT * FROM "Cars" WHERE id=$1', [id])).rowCount
+    ) {
+      status = 404;
+      message = "Car not found";
+    } else {
+      status = 200;
+      message = `Car deleted successfully with ID: ${id}`;
+      await pool.query('DELETE FROM "Cars" WHERE id=$1', [id]);
     }
+
+    return { status, message };
   }
 
   async updateCar(id, data) {

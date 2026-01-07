@@ -9,7 +9,13 @@ class Customerservice {
   }
 
   async customerCreate(data) {
-    const { customer_name, phone_number, address, passport_seriya, passport_number } = data;
+    const {
+      customer_name,
+      phone_number,
+      address,
+      passport_seriya,
+      passport_number,
+    } = data;
 
     let temp = await pool.query(
       'insert into "Customers" (customer_name, phone_number, address, passport_seriya, passport_number) VALUES ($1, $2, $3, $4, $5) RETURNING *',
@@ -19,29 +25,18 @@ class Customerservice {
   }
 
   async deleteCustomer(id) {
-    try {
       let status, message;
       if (!id || isNaN(id) || id <= 0) {
         status = 400;
         message = "Invalid ID";
-      } else if (
-        !(await pool.query('SELECT * FROM "Customers" WHERE id=$1', [id]))
-          .rowCount
-      ) {
-        status = 404;
-        message = "customer not found";
       } else {
         status = 200;
         message = `customer deleted successfully with ID: ${id}`;
       }
-      console.log(status);
+      await pool.query('DELETE FROM "Customers" WHERE id=$1', [id]);
 
-      let data = await pool.query('DELETE FROM "Customers" WHERE id=$1', [id]);
       return { status, message };
-    } catch (error) {
-      return { status: 400, message: "Internal Server Error" };
-    }
-  }
+    } 
 
   async updatecustomer(id, data) {
     try {

@@ -162,3 +162,33 @@ LEFT JOIN "Payments" p ON o.id = p.order_id
 GROUP BY o.id, c.customer_name, ca.car_name, o.month, o.end_date, o.total_amount
 HAVING (o.total_amount - SUM(p.payment_amount)) > 0;
 
+
+error: update or delete on table &quot;Customers&quot; violates foreign key constraint &quot;Orders_customer_id_fkey&quot; on table &quot;Orders&quot;<br> &nbsp; &nbsp;at D:\NT DARSLARI\36_dars\node_modules\pg-pool\index.js:45:11<br> &nbsp; &nbsp;at process.processTicksAndRejections (node:internal/process/task_queues:95:5)<br> &nbsp; &nbsp;at async Customerservice.deleteCustomer (file:///D:/NT%20DARSLARI/36_dars/src/services/customers.service.js:36:7)<br> &nbsp; &nbsp;at async deletecustomer (file:///D:/NT%20DARSLARI/36_dars/src/controllers/customers.controller.js:29:18)
+
+ERROR:  update or delete on table "Customers" violates foreign key constraint "Orders_customer_id_fkey" on table "Orders"
+DETAIL:  Key (id)=(1) is still referenced from table "Orders".
+ALTER TABLE "Orders" DROP CONSTRAINT "Orders_customer_id_fkey";
+ALTER TABLE "Orders" ADD CONSTRAINT "Orders_customer_id_fkey" FOREIGN KEY ("customer_id") REFERENCES "Customers"(id) ON DELETE CASCADE;
+
+error: update or delete on table "Orders" violates foreign key constraint "Payments_order_id_fkey" on table "Payments"
+    at D:\NT DARSLARI\36_dars\node_modules\pg-pool\index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async Customerservice.deleteCustomer (file:///D:/NT%20DARSLARI/36_dars/src/services/customers.service.js:36:7)
+    at async deletecustomer (file:///D:/NT%20DARSLARI/36_dars/src/controllers/customers.controller.js:29:18)
+
+ERROR:  update or delete on table "Orders" violates foreign key constraint "Payments_order_id_fkey" on table "Payments"
+DETAIL:  Key (id)=(1) is still referenced from table "Payments".
+ALTER TABLE "Payments" DROP CONSTRAINT "Payments_order_id_fkey";
+ALTER TABLE "Payments" ADD CONSTRAINT "Payments_order_id_fkey" FOREIGN KEY ("order_id") REFERENCES "Orders"(id) ON DELETE CASCADE;
+
+error: update or delete on table "Cars" violates foreign key constraint "Orders_car_id_fkey" on table "Orders"
+    at D:\NT DARSLARI\36_dars\node_modules\pg-pool\index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async CarService.deleteCar (file:///D:/NT%20DARSLARI/36_dars/src/services/cars.service.js:34:7)
+    at async deleteCar (file:///D:/NT%20DARSLARI/36_dars/src/controllers/cars.controller.js:31:18)
+
+ERROR:  update or delete on table "Cars" violates foreign key constraint "Orders_car_id_fkey" on table "Orders"
+DETAIL:  Key (id)=(1) is still referenced from table "Orders".
+ALTER TABLE "Orders" DROP CONSTRAINT "Orders_car_id_fkey";
+ALTER TABLE "Orders" ADD CONSTRAINT "Orders_car_id_fkey" FOREIGN KEY ("car_id") REFERENCES "Cars"(id) ON DELETE CASCADE;
+

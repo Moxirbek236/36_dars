@@ -26,10 +26,10 @@ class CustomersController {
     }
   }
   async deletecustomer(req, res) {
-    const data = await customerService.deletecustomer(req.params.id);
+    const data = await customerService.deleteCustomer(req.params.id);
     res.status(data.status).json({
       status: data.status,
-      message: data.message,
+      message: data.message
     });
   }
   async updatecustomer(req, res) {
